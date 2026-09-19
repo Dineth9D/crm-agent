@@ -24,13 +24,13 @@ class Database:
             # Regular client with anon key
             self.supabase = create_client(
                 settings.supabase_url,
-                settings.supabase_service_key
+                settings.supabase_publishable_key
             )
             
             # Admin client with service role key
             self._admin_client = create_client(
                 settings.supabase_url,
-                settings.supabase_service_role_key
+                settings.supabase_secret_key
             )
 
             logger.info("Supabase client connected successfully")

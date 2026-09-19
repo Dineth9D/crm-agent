@@ -17,11 +17,11 @@ class Settings(BaseSettings):
     # Supabase configuration
     supabase_url: str = Field(..., description="Supabase project URL")
     supabase_publishable_key: str = Field(
-        ..., description="Publishable (anon) key, safe for client-side use"
+        ..., description="Publishable key, safe for client-side use"
     )
-    supabase_service_key: Optional[str] = Field(
+    supabase_secret_key: Optional[str] = Field(
         default=None,
-        description="Service role key. Bypasses RLS - server-side only.",
+        description="Secret key. Bypasses RLS - server-side only.",
     )
 
     # Database behaviour
