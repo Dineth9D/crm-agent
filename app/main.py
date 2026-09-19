@@ -1,6 +1,8 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.concurrency import asynccontextmanager
+from app.core.database import db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -9,11 +11,36 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events."""
+    # Startup
+    logger.info("Starting RAG API application")
+    
+    try:
+        # Initialize database connection
+        await db.connect()
+        
+        # Check database schema
+        await db.initialize_schema()
+        
+        logger.info("Application startup completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Application startup failed: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down RAG API application")
+    await db.disconnect()
+
 app = FastAPI(
     title="RAG AI Agent Backend",
     description="This is the backend for the RAG AI Agent, which provides an API for interacting with the agent.",
     version="1.0.0",
-    # lifespan=lifespan
+    lifespan=lifespan
 )
 
 @app.get("/", tags=["Root"])
