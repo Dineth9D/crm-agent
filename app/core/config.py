@@ -32,6 +32,17 @@ class Settings(BaseSettings):
         description="Abort startup when the expected tables are missing, instead of warning",
     )
 
+    # RAG Configuration
+    default_top_k: int = Field(default=6)
+    chunk_size: int = Field(default=400)  # Approximate tokens
+    chunk_overlap: int = Field(default=60)  # 15% overlap
+    temperature: float = Field(default=0.1)
+    embedding_dimensions: int = Field(default=1536)  # text-embedding-3-small dimensions
+
+    # Application Configuration
+    environment: str = Field(default="development", env="ENVIRONMENT")
+    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+
 
 @lru_cache
 def get_settings() -> Settings:
