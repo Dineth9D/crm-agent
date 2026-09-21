@@ -174,7 +174,7 @@ FROM get_chunk_stats();
 -- SUCCESS MESSAGE
 -- =============================================================================
 
-SELECT '🎉 SUCCESS! Your Supabase database is ready for RAG!' as final_result;
+SELECT 'SUCCESS! Your Supabase database is ready for RAG!' as final_result;
 
 -- =============================================================================
 -- WHAT WAS CREATED:

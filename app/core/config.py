@@ -19,9 +19,8 @@ class Settings(BaseSettings):
     supabase_publishable_key: str = Field(
         ..., description="Publishable key, safe for client-side use"
     )
-    supabase_secret_key: Optional[str] = Field(
-        default=None,
-        description="Secret key. Bypasses RLS - server-side only.",
+    supabase_secret_key: str = Field(
+        ...,description="Secret key. Bypasses RLS - server-side only.",
     )
 
     # Database behaviour
@@ -29,8 +28,8 @@ class Settings(BaseSettings):
         default="public", description="Postgres schema PostgREST exposes"
     )
     require_schema: bool = Field(
-        default=False,
-        description="Fail startup when a required table is missing instead of warning",
+        default=True,
+        description="Abort startup when the expected tables are missing, instead of warning",
     )
 
 

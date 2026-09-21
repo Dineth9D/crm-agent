@@ -10,6 +10,11 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+class SchemaNotReady(RuntimeError):
+    """Raised when the expected database schema is missing or unusable."""
+
+
 class Database:
     """Supabase database operations manager for RAG functionality."""
 
@@ -17,6 +22,7 @@ class Database:
         """Initialize Supabase client."""
         self.supabase: Optional[Client] = None
         self._admin_client: Optional[Client] = None
+        self._schema_ready: bool = False
 
     async def connect(self) -> None:
         """Establish connection to Supabase."""
@@ -60,46 +66,69 @@ class Database:
 
     async def initialize_schema(self) -> None:
         """
-        Check if database schema is initialized.
-        
-        Note: The actual schema setup must be done manually in Supabase.
-        Run the SQL script: sql/init_supabase.sql in your Supabase SQL Editor.
+        Verify the database schema is present and usable.
+
+        The schema itself is created manually: run sql/sql/init_supabase.sql in
+        the Supabase SQL Editor. This only checks that it was done.
+
+        Raises:
+            SchemaNotReady: when the check fails and settings.require_schema is
+                True. When it is False the problem is logged as a warning and
+                startup continues.
         """
         try:
             client = self.get_client(admin=True)
-            
-            # Check if the table exists and has the required structure
-            result = client.table('rag_chunks').select('id').limit(1).execute()
-            
-            if result.data is not None:
-                logger.info("Database schema is properly initialized")
-                
-                # Test the vector search function
-                try:
-                    stats_result = client.rpc('get_chunk_stats').execute()
-                    if stats_result.data:
-                        stats = stats_result.data[0]
-                        logger.info(f"Database stats: {stats['total_chunks']} chunks, {stats['unique_sources']} sources")
-                except Exception:
-                    logger.warning("get_chunk_stats function not available - some features may not work")
-                    
-            else:
-                logger.error("Database schema not initialized!")
-                logger.error(
-                    "Please run the SQL initialization script:\n"
-                    "1. Open your Supabase project dashboard\n"
-                    "2. Go to SQL Editor\n"
-                    "3. Run the script: sql/init_supabase.sql\n"
-                    "4. Restart your application"
-                )
-                
+            client.table("rag_chunks").select("id").limit(1).execute()
         except Exception as e:
-            logger.error(f"Database schema check failed: {e}")
-            logger.error(
-                "Please ensure you've run sql/init_supabase.sql in your Supabase dashboard"
+            self._schema_ready = False
+            self._report_schema_problem(
+                f"Required table 'rag_chunks' is not queryable: {e}"
+            )
+            return
+
+        self._schema_ready = True
+        logger.info("Database schema is properly initialized")
+
+        # Optional helper. Its absence degrades reporting but not core search,
+        # so it never blocks startup.
+        try:
+            stats_result = client.rpc("get_chunk_stats").execute()
+            if stats_result.data:
+                stats = stats_result.data[0]
+                logger.info(
+                    f"Database stats: {stats['total_chunks']} chunks, "
+                    f"{stats['unique_sources']} sources"
+                )
+        except Exception:
+            logger.warning(
+                "get_chunk_stats function not available - some features may not work"
             )
 
-    
+    def _report_schema_problem(self, detail: str) -> None:
+        """Raise or warn about a schema problem, per settings.require_schema."""
+        remediation = (
+            f"{detail}\n"
+            "Run the SQL initialization script:\n"
+            "1. Open your Supabase project dashboard\n"
+            "2. Go to SQL Editor\n"
+            "3. Run the script: sql/sql/init_supabase.sql\n"
+            "4. Restart your application"
+        )
+
+        if settings.require_schema:
+            logger.error(remediation)
+            raise SchemaNotReady(detail)
+
+        logger.warning(
+            "%s\nStarting anyway because require_schema is disabled. "
+            "RAG endpoints will fail until this is resolved.",
+            remediation,
+        )
+
+    @property
+    def schema_ready(self) -> bool:
+        """Whether the last schema check succeeded."""
+        return self._schema_ready
 
 
 db = Database()
