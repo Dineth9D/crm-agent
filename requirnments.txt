@@ -3,3 +3,5 @@ uvicorn[standard]
 supabase>=2.31.0
 pydantic-settings
 python-dotenv
+openai
+anthropic
