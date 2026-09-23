@@ -38,10 +38,20 @@ class Settings(BaseSettings):
     chunk_overlap: int = Field(default=60)  # 15% overlap
     temperature: float = Field(default=0.1)
     embedding_dimensions: int = Field(default=1536)  # text-embedding-3-small dimensions
+    max_tokens: int = Field(default=1200)
 
     # Application Configuration
     environment: str = Field(default="development", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
+
+    # OpenAI Configuration
+    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    openai_embed_model: str = Field(default="text-embedding-3-small", env="OPENAI_EMBED_MODEL")
+    openai_chat_model: str = Field(default="gpt-4o", env="OPENAI_CHAT_MODEL")
+
+    # Anthropic Configuration
+    anthropic_api_key: str = Field(default="", env="ANTHROPIC_API_KEY")
+    anthropic_chat_model: str = Field(default="claude-3-5-sonnet-20240620", env="ANTHROPIC_CHAT_MODEL")
 
 
 @lru_cache
