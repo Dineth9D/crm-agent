@@ -66,3 +66,49 @@ class RAGService:
         except Exception as e:
             logger.error(f"Seeding failed: {e}")
             raise
+
+    async def answer_query(self, query: str, top_k: int) -> Dict[str, Any]:
+        """
+        Process a query through the complete RAG pipeline.
+
+        Args:
+            query: User's question
+            tok_k: Number of chunk to retrieve
+
+        Returns:
+            Dictionary with answer, citations, and debug info
+        """
+        start_time = time.time()
+
+        try:
+            # Step 1: Generate query embedding
+            query_embedding = await self.embedding_service.embed_query(query)
+
+            # Step 2: Vector similarity search
+            search_results = await self.db.vector_search(query_embedding, top_k)
+
+            if not search_results:
+                return {
+                    'text': "I don't have enough information to answer your question. Could you please rephrase or provide more context?",
+                    'citations': [],
+                    'debug': {
+                        'top_doc_ids': [],
+                        'latency_ms': int((time.time() - start_time) * 1000)
+                    }
+                }
+
+            # Step 3: Deduplicate and prepare context
+            context_blocks = self._prepare_context(search_results)
+
+
+    def prepare_context(self, search_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Prepare context blocks from search results with simple deduplication.
+        
+        Args:
+            search_results: Raw search results from database
+
+        Returns:
+            Processed context blocks
+        """
+        # Simple deduplication by chunk_id prefix (MMR-lite)
