@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 class ChatService:
-    """Service for generating chat complettions supporting multiple AI providers."""
+    """Service for generating chat completions supporting multiple AI providers."""
 
     def __init__(self):
         """Initialize chat clients based on configuration."""

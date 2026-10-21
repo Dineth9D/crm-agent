@@ -2,6 +2,8 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.database import db
 
 logging.basicConfig(
@@ -42,6 +44,22 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Configure CORS for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # NextJS default
+        "http://localhost:3001",  # Alternative port
+        "https://yt-rag.vercel.app",  # Production frontend
+        "*"  # Allow all for development (remove in production)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", tags=["Root"])
 async def read_root():
