@@ -805,12 +805,16 @@
             
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+            // Render as text nodes with <br> elements so message content is never parsed as HTML.
+            content.split('\n').forEach((line, i) => {
+                if (i > 0) contentDiv.appendChild(document.createElement('br'));
+                contentDiv.appendChild(document.createTextNode(line));
+            });
             
             if (citations.length > 0) {
                 const citationsDiv = document.createElement('div');
                 citationsDiv.className = 'citations';
-                citationsDiv.innerHTML = `📚 Sources: ${citations.join(', ')}`;
+                citationsDiv.textContent = `📚 Sources: ${citations.join(', ')}`;
                 contentDiv.appendChild(citationsDiv);
             }
             
