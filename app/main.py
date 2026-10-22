@@ -1,12 +1,16 @@
 import logging
+import secrets
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, Security
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 
+from .core.config import settings
 from .core.database import db
 from .data.default_documents import DEFAULT_DOCUMENTS
 from .services.rag import rag_service
@@ -153,7 +157,30 @@ async def get_documents():
     return {"documents": DEFAULT_DOCUMENTS}
 
 
-@app.post("/seed", response_model=SeedResponse, tags=["RAG"])
+admin_key_header = APIKeyHeader(name="X-Admin-Key", auto_error=False)
+
+
+async def require_admin(provided_key: Optional[str] = Security(admin_key_header)) -> None:
+    """
+    Allow the request only when it carries the server-side admin API key.
+
+    Fails closed: if ADMIN_API_KEY is not configured, every request is refused.
+    """
+    expected_key = settings.admin_api_key
+    if not expected_key:
+        logger.warning("Rejected admin request: ADMIN_API_KEY is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="Admin endpoints are disabled: ADMIN_API_KEY is not configured",
+        )
+
+    if not provided_key or not secrets.compare_digest(
+        provided_key.encode("utf-8"), expected_key.encode("utf-8")
+    ):
+        raise HTTPException(status_code=401, detail="Invalid or missing admin API key")
+
+
+@app.post("/seed", response_model=SeedResponse, tags=["RAG"], dependencies=[Depends(require_admin)])
 async def seed_documents(request: SeedRequest = SeedRequest()):
     """
     Seed the knowledge base with documents.

@@ -617,6 +617,7 @@
 
         let documents = [];
         let currentTab = 'documents';
+        let adminKey = null;  // Kept in memory only for this page session
 
         // Initialize the application
         init();
@@ -725,6 +726,14 @@
             const saveText = document.getElementById('saveText');
             const originalText = saveText.innerHTML;
             
+            if (!adminKey) {
+                adminKey = window.prompt('Enter the admin API key to update the knowledge base:');
+                if (!adminKey) {
+                    adminKey = null;
+                    return;
+                }
+            }
+
             saveBtn.disabled = true;
             saveBtn.classList.add('loading');
             saveBtn.classList.remove('success', 'error');
@@ -735,11 +744,16 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Admin-Key': adminKey,
                     },
                     body: JSON.stringify({
                         docs: documents
                     })
                 });
+
+                if (response.status === 401) {
+                    adminKey = null;  // Ask again on the next save
+                }
 
                 if (response.ok) {
                     const data = await response.json();

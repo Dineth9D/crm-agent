@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1536)  # text-embedding-3-small dimensions
     max_tokens: int = Field(default=1200)
 
+    # Admin access
+    admin_api_key: str = Field(
+        default="",
+        description=(
+            "Shared secret required in the X-Admin-Key header for admin-only "
+            "endpoints such as POST /seed. When empty, those endpoints are disabled."
+        ),
+    )
+
     # Application Configuration
     environment: str = Field(default="development", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
