@@ -15,7 +15,7 @@ settings = get_settings()
 class TextChunker:
     """Simple text chunker with word based splitting and overlap"""
 
-    def ___init__(self, chunk_size: int = None, overlap: int = None):
+    def __init__(self, chunk_size: int = None, overlap: int = None):
         """
         Initialize chunker with configuration.
 
@@ -108,8 +108,8 @@ class TextChunker:
         text = text.strip()
 
         # Normalize quotes
-        text = text.replace('"', '"').replace('"', '"')
-        text = text.replace(''', "'").replace(''', "'")
+        text = text.replace('\u201c', '"').replace('\u201d', '"')
+        text = text.replace('\u2018', "'").replace('\u2019', "'")
         return text
 
     def chunk_documents(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

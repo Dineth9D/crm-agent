@@ -1,10 +1,17 @@
 import logging
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.core.database import db
+
+from .core.database import db
+from .data.default_documents import DEFAULT_DOCUMENTS
+from .services.rag import rag_service
+from .models.responses import SeedResponse, AnswerResponse, HealthResponse, ErrorResponse
+from .models.requests import SeedRequest, AnswerRequest
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +45,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down RAG API application")
     await db.disconnect()
 
+
 app = FastAPI(
     title="RAG AI Agent Backend",
     description="This is the backend for the RAG AI Agent, which provides an API for interacting with the agent.",
@@ -45,37 +53,212 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
 # Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # NextJS default
         "http://localhost:3001",  # Alternative port
-        "https://yt-rag.vercel.app",  # Production frontend
-        "*"  # Allow all for development (remove in production)
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/", tags=["Root"])
-async def read_root():
-    """
-    Root endpoint that returns a welcome message.
-    """
-    logger.info("Root endpoint called.")
-    return {"message": "Welcome to the RAG AI Agent Backend!"}
+# Resolve static dir from the project root so it works regardless of the cwd
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-@app.get("/health", tags=["Health"])
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+else:
+    logger.warning(f"Static directory '{STATIC_DIR}' not found; /static will not be served")
+
+
+@app.get("/chat", tags=["General"])
+async def chat_interface():
+    """Serve the chat interface."""
+    chat_file = STATIC_DIR / "chat.html"
+    if not chat_file.is_file():
+        raise HTTPException(status_code=404, detail="Chat interface not found")
+    return FileResponse(chat_file)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Handle favicon requests to prevent 404 errors."""
+    return Response(status_code=204)  # No Content
+
+
+@app.get("/", tags=["General"])
+async def root():
+    """Root endpoint with API information."""
+    return {
+        "message": "Welcome to RAG AI Agent Backend",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "endpoints": {
+            "health": "/healthz",
+            "seed": "/seed",
+            "answer": "/answer",
+            "documents": "/documents",
+            "greet": "/greet/{name}"
+        }
+    }
+
+
+@app.get("/greet/{name}", tags=["General"])
+async def greet(name: str):
+    """
+    Greet endpoint that returns a personalized greeting.
+    
+    Args:
+        name (str): Name of the person to greet
+        
+    Returns:
+        Personalized greeting message
+    """
+    return {"message": f"Hello, {name}! I think you are great!"}
+
+
+@app.get("/healthz", response_model=HealthResponse, tags=["Health"])
 async def health_check():
+    """Health check endpoint with database connectivity test."""
+    try:
+        # Test database connection
+        db_healthy = await db.health_check()
+        
+        return HealthResponse(
+            status="ok" if db_healthy else "degraded",
+            database_connected=db_healthy
+        )
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Service unavailable: {str(e)}"
+        )
+
+
+@app.get("/documents", tags=["General"])
+async def get_documents():
     """
-    Health check endpoint to verify that the API is running.
+    Get the default documents used for seeding the knowledge base.
+    
+    Returns:
+        List of default documents with their chunk_id, source, and text
     """
-    logger.info("Health check endpoint called.")
-    return {"status": "healthy"}
+    return {"documents": DEFAULT_DOCUMENTS}
+
+
+@app.post("/seed", response_model=SeedResponse, tags=["RAG"])
+async def seed_documents(request: SeedRequest = SeedRequest()):
+    """
+    Seed the knowledge base with documents.
+    
+    If no documents are provided, seeds with default policy/FAQ documents.
+    Documents are chunked, embedded, and stored in the vector database.
+    """
+    try:
+        logger.info("Starting document seeding process")
+        
+        # Convert request documents to the format expected by RAG service
+        documents = None
+        if request.docs:
+            documents = [
+                {
+                    'chunk_id': doc.chunk_id,
+                    'source': doc.source,
+                    'text': doc.text
+                }
+                for doc in request.docs
+            ]
+        
+        # Process documents through RAG pipeline
+        inserted_count = await rag_service.seed_documents(documents)
+        
+        logger.info(f"Seeding completed: {inserted_count} chunks inserted")
+        
+        return SeedResponse(inserted=inserted_count)
+        
+    except Exception as e:
+        logger.error(f"Seeding failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to seed documents: {str(e)}"
+        )
+
+
+@app.post("/answer", response_model=AnswerResponse, tags=["RAG"])
+async def answer_question(request: AnswerRequest):
+    """
+    Answer a question using RAG (Retrieval-Augmented Generation).
+    
+    Pipeline:
+    1. Embed the query
+    2. Vector similarity search to find relevant chunks
+    3. Generate answer using LLM with context
+    4. Return answer with citations and debug info
+    """
+    try:
+        logger.info(f"Processing query: '{request.query[:100]}...'")
+        
+        # Process query through RAG pipeline
+        result = await rag_service.answer_query(
+            query=request.query,
+            top_k=request.top_k
+        )
+        
+        # Convert to response model
+        response = AnswerResponse(
+            text=result['text'],
+            citations=result['citations'],
+            debug={
+                'top_doc_ids': result['debug']['top_doc_ids'],
+                'latency_ms': result['debug']['latency_ms']
+            }
+        )
+        
+        logger.info(f"Query processed successfully in {result['debug']['latency_ms']}ms")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Query processing failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process query: {str(e)}"
+        )
+
+
+# Error handlers
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    """Handle 404 errors."""
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "Not Found",
+            "detail": "The requested endpoint does not exist",
+            "available_endpoints": ["/", "/healthz", "/seed", "/answer", "/docs"]
+        }
+    )
+
+
+@app.exception_handler(500)
+async def internal_error_handler(request, exc):
+    """Handle 500 errors."""
+    logger.error(f"Internal server error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "detail": "An unexpected error occurred. Please check the logs."
+        }
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(default="", env="ANTHROPIC_API_KEY")
     anthropic_chat_model: str = Field(default="claude-3-5-sonnet-20240620", env="ANTHROPIC_CHAT_MODEL")
 
+    # AI Provider
+    ai_provider: str = Field(default="openai", env="AI_PROVIDER")
+
 
 @lru_cache
 def get_settings() -> Settings:

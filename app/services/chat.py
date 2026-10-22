@@ -20,10 +20,10 @@ class ChatService:
         self.provider = settings.ai_provider
 
         if self.provider == "openai":
-            self.client = openai.OpenAI(api_key=settings.openai_api_key)
+            self.client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
             self.model = settings.openai_chat_model
         elif self.provider == "anthropic":
-            self.client = anthropic.Client(api_key=settings.anthropic_api_key)
+            self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
             self.model = settings.anthropic_chat_model
         else:
             raise ValueError(f"Unsupported AI provider: {self.provider}")
@@ -81,7 +81,7 @@ class ChatService:
                 answer = response.choices[0].message.content
 
             elif self.provider == "anthropic":
-                response = await self.client.completions.create(
+                response = await self.client.messages.create(
                     model=self.model,
                     max_tokens=settings.max_tokens,
                     temperature=settings.temperature,

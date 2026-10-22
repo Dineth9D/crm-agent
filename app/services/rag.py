@@ -48,7 +48,7 @@ class RAGService:
             logger.info(f"Created {len(chunks)} chunks from {len(documents)} documents")
 
             # Step 2: Generate embeddings for all chunks
-            texts = [chunks['text'] for chunk in chunks]
+            texts = [chunk['text'] for chunk in chunks]
             embeddings = await self.embedding_service.embed_texts(texts)
 
             # Step 3: Combine chunks with embeddings

@@ -17,7 +17,7 @@ class EmbeddingService:
     
     def __init__(self):
         """Initialize OpenAI client for embeddings."""
-        self.openai_client = openai.OpenAI(api_key=settings.openai_api_key)
+        self.openai_client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
         self.embed_model = settings.openai_embed_model
     
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
@@ -31,7 +31,7 @@ class EmbeddingService:
             List of embedding vectors (1536 dimensions for text-embedding-3-small)
         """
         try:
-            response = self.openai_client.embeddings.create(
+            response = await self.openai_client.embeddings.create(
                 model=self.embed_model,
                 input=texts
             )
