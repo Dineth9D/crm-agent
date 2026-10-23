@@ -102,7 +102,7 @@ class ChatService:
 
         except Exception as e:
             logger.error(f"Failed to generate answer: {e}")
-            return f"I encountered an error while processing your question: {str(e)}"
+            return "I encountered an error while processing your question. Please try again later."
 
 # Global service instance
 chat_service = ChatService()

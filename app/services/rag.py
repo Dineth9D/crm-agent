@@ -123,7 +123,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Query processing failed: {e}")
             return {
-                'text': f"I encountered an error while processing your question: {str(e)}",
+                'text': "I encountered an error while processing your question. Please try again later.",
                 'citations': [],
                 'debug': {
                     'top_doc_ids': [],

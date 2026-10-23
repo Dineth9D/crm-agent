@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     # AI Provider
     ai_provider: str = Field(default="openai", env="AI_PROVIDER")
 
+    # Size limits for request validation
+    max_chunk_id_length: int = Field(default=128)
+    max_source_length: int = Field(default=2048)
+    max_doc_text_length: int = Field(default=50_000)
+    max_docs_per_seed: int = Field(default=100)
+    max_query_length: int = Field(default=2000)
+
 
 @lru_cache
 def get_settings() -> Settings:

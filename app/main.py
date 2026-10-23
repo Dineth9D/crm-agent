@@ -142,7 +142,7 @@ async def health_check():
         logger.error(f"Health check failed: {e}")
         raise HTTPException(
             status_code=503,
-            detail=f"Service unavailable: {str(e)}"
+            detail="Service unavailable"
         )
 
 
@@ -214,7 +214,7 @@ async def seed_documents(request: SeedRequest = SeedRequest()):
         logger.error(f"Seeding failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to seed documents: {str(e)}"
+            detail="Failed to seed documents"
         )
 
 
@@ -256,7 +256,7 @@ async def answer_question(request: AnswerRequest):
         logger.error(f"Query processing failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process query: {str(e)}"
+            detail="Failed to process query"
         )
 
 
