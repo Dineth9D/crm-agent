@@ -191,25 +191,14 @@ class Database:
                 'match_count': top_k
             }).execute()
             
-            if result.data:
-                logger.info(f"Vector search returned {len(result.data)} results")
-                return result.data
-            else:
-                # Fallback: if RPC function doesn't exist, use regular query
-                # This won't have vector similarity but will work for basic testing
-                logger.info("Using fallback query (match_chunks RPC function not available)")
-                result = client.table('rag_chunks').select('*').limit(top_k).execute()
-                
-                # Add mock similarity scores for fallback
-                if result.data:
-                    for i, chunk in enumerate(result.data):
-                        chunk['similarity'] = 1.0 - (i * 0.1)  # Mock decreasing similarity
-                
-                return result.data or []
-                
+            # No rows means no matching data. The caller handles the empty list.
+            results = result.data or []
+            logger.info(f"Vector search returned {len(results)} results")
+            return results
+
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
-            return []
+            raise
     
     async def health_check(self) -> bool:
         """Check Supabase connection health."""
