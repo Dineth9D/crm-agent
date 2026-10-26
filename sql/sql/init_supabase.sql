@@ -34,10 +34,12 @@ CREATE TABLE rag_chunks (
 -- STEP 3: Create performance indexes for fast vector search
 -- =============================================================================
 
--- Vector similarity index using IVFFlat algorithm (works with 1536 dimensions)
+-- Vector similarity index using HNSW (works with 1536 dimensions)
 -- Using text-embedding-3-small (1536 dimensions) for compatibility
+-- Not IVFFlat: it splits rows into lists and searches only the nearest one,
+-- so on a small or empty table most searches return no rows.
 CREATE INDEX rag_chunks_vec_idx
-    ON rag_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+    ON rag_chunks USING hnsw (embedding vector_cosine_ops);
 
 -- Regular B-tree indexes for filtering and sorting
 CREATE INDEX rag_chunks_src_idx ON rag_chunks (source);
