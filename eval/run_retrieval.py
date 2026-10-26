@@ -2,8 +2,8 @@
 Retrieval evaluation for the RAG pipeline.
 
 Scores two stages for every question in the dataset:
-    search:  raw results from db.vector_search (top_k chunks)
-    context: what the LLM actually sees, after rag_service._prepare_context
+    search:  raw results from ChunkRetriever.search_by_vector (top_k chunks, no threshold)
+    context: what the answer model sees, after prepare_context (before LLM grading)
 
 Usage:
     venv/bin/python -m eval.run_retrieval
@@ -24,8 +24,7 @@ from typing import Any, Dict, List
 
 from app.core.config import settings
 from app.core.database import db
-from app.services.embedding import embedding_service
-from app.services.rag import rag_service
+from app.rag.vectorstore import ChunkRetriever, make_embeddings, make_vectorstore, prepare_context
 from eval.metrics import (
     hit_at_k,
     ndcg_at_k,
@@ -74,20 +73,24 @@ def mean_scores(rows: List[Dict[str, Any]]) -> Dict[str, float]:
 async def run(dataset_path: Path, top_k: int) -> Dict[str, Any]:
     cases = load_dataset(dataset_path)
     await db.connect()
+    embeddings = make_embeddings()
+    retriever = ChunkRetriever(make_vectorstore(db.get_client(admin=True), embeddings), embeddings)
 
     # One batched embedding call for all questions: faster and cheaper.
     started = time.time()
-    query_embeddings = await embedding_service.embed_texts([c["question"] for c in cases])
+    query_embeddings = await embeddings.aembed_documents([c["question"] for c in cases])
 
     rows: List[Dict[str, Any]] = []
     for case, embedding in zip(cases, query_embeddings):
         search_started = time.time()
-        results = await db.vector_search(embedding, top_k)
+        pairs = await retriever.search_by_vector(embedding, top_k)
         search_ms = (time.time() - search_started) * 1000
 
-        context = rag_service._prepare_context(results) if results else []
+        # Same dict shape as the old db.vector_search, so the scoring below is unchanged.
+        results = [{"chunk_id": doc.metadata["chunk_id"], "similarity": score} for doc, score in pairs]
+        context = prepare_context(pairs, settings.max_context_chunks)
         search_docs = to_doc_ids([r["chunk_id"] for r in results])
-        context_docs = to_doc_ids([c["chunk_id"] for c in context])
+        context_docs = to_doc_ids([doc.metadata["chunk_id"] for doc in context])
         relevant = set(case["relevant_doc_ids"])
 
         rows.append({

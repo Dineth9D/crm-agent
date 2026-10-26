@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -41,6 +41,23 @@ class Settings(BaseSettings):
     temperature: float = Field(default=0.1)
     embedding_dimensions: int = Field(default=1536)  # text-embedding-3-small dimensions
     max_tokens: int = Field(default=1200)
+    # Chunks the answer model sees, at most one per document.
+    max_context_chunks: int = Field(default=4, ge=1)
+
+    # Vector store (sql/migrations/002_langchain_vectorstore.sql)
+    vector_table: str = Field(default="rag_documents")
+    vector_query_name: str = Field(default="match_documents")
+
+    # LangGraph behaviour
+    # Searches per question, counting the first one. 2 = one rewrite and retry.
+    max_retrieval_attempts: int = Field(default=2, ge=1, le=5)
+    # Earlier messages (user + assistant) sent with each turn.
+    history_max_messages: int = Field(default=10, ge=0)
+    # "memory" loses history on restart. "postgres" needs supabase_db_url.
+    checkpointer: Literal["memory", "postgres"] = Field(default="memory")
+    supabase_db_url: str = Field(
+        default="", description="Postgres URL (session pooler) for the postgres checkpointer"
+    )
 
     # Admin access
     admin_api_key: str = Field(
@@ -59,13 +76,19 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
     openai_embed_model: str = Field(default="text-embedding-3-small", env="OPENAI_EMBED_MODEL")
     openai_chat_model: str = Field(default="gpt-4o", env="OPENAI_CHAT_MODEL")
+    # Model for query rewriting and grading. Empty means use openai_chat_model.
+    openai_utility_model: str = Field(default="")
 
     # Anthropic Configuration
     anthropic_api_key: str = Field(default="", env="ANTHROPIC_API_KEY")
-    anthropic_chat_model: str = Field(default="claude-3-5-sonnet-20240620", env="ANTHROPIC_CHAT_MODEL")
+    anthropic_chat_model: str = Field(default="claude-sonnet-5-5", env="ANTHROPIC_CHAT_MODEL")
+    anthropic_utility_model: str = Field(default="claude-haiku-5-5")
+    # Current Claude models always think, and thinking counts toward max_tokens,
+    # so this needs more room than the OpenAI max_tokens.
+    anthropic_max_tokens: int = Field(default=4096)
 
-    # AI Provider
-    ai_provider: str = Field(default="openai", env="AI_PROVIDER")
+    # AI Provider for chat. Embeddings always use OpenAI.
+    ai_provider: Literal["openai", "anthropic"] = Field(default="openai", env="AI_PROVIDER")
 
     # Size limits for request validation
     max_chunk_id_length: int = Field(default=128)
