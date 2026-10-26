@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # RAG Configuration
     default_top_k: int = Field(default=6)
+    # Chunks below this cosine similarity count as "no data". 0.0 turns it off.
+    min_similarity: float = Field(default=0.0, ge=0.0, le=1.0, env="MIN_SIMILARITY")
     chunk_size: int = Field(default=400)  # Approximate tokens
     chunk_overlap: int = Field(default=60)  # 15% overlap
     temperature: float = Field(default=0.1)

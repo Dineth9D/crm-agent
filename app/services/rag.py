@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Tuple
 import time
 import re
 
+from ..core.config import settings
 from ..core.database import db
 from .embedding import embedding_service
 from .chat import chat_service
@@ -86,6 +87,9 @@ class RAGService:
 
             # Step 2: Vector similarity search
             search_results = await self.db.vector_search(query_embedding, top_k)
+
+            # Step 2b: Drop weak matches. An empty list falls into the "not enough information" reply below.
+            search_results = [result for result in search_results if result['similarity'] >= settings.min_similarity]
 
             if not search_results:
                 return {
