@@ -1,0 +1,23 @@
+{"id": "ret-01", "question": "How many days do I have to return something?", "relevant_doc_ids": ["policy_returns_v1"], "tag": "direct"}
+{"id": "ret-02", "question": "Can I send back a pack of underwear I bought last week?", "relevant_doc_ids": ["policy_returns_v1"], "tag": "paraphrase"}
+{"id": "ret-03", "question": "When will I get my money back after I send an order back?", "relevant_doc_ids": ["policy_returns_v1"], "tag": "paraphrase"}
+{"id": "ret-04", "question": "I bought a $350 jacket. Can I return it the normal way?", "relevant_doc_ids": ["policy_returns_v1"], "tag": "paraphrase"}
+{"id": "ret-05", "question": "Can I return shoes that I wore outside once?", "relevant_doc_ids": ["policy_returns_v1"], "tag": "direct"}
+{"id": "ret-06", "question": "How much does express delivery cost?", "relevant_doc_ids": ["policy_shipping_v1"], "tag": "direct"}
+{"id": "ret-07", "question": "Do you deliver to Canada?", "relevant_doc_ids": ["policy_shipping_v1"], "tag": "paraphrase"}
+{"id": "ret-08", "question": "If I place an order on Saturday, when does it leave the warehouse?", "relevant_doc_ids": ["policy_shipping_v1"], "tag": "paraphrase"}
+{"id": "ret-09", "question": "What is the minimum spend to get free delivery?", "relevant_doc_ids": ["policy_shipping_v1"], "tag": "paraphrase"}
+{"id": "ret-10", "question": "How long does standard shipping take?", "relevant_doc_ids": ["policy_shipping_v1"], "tag": "direct"}
+{"id": "ret-11", "question": "I'm between two shoe sizes. Should I go up or down?", "relevant_doc_ids": ["sizing_guide_v1"], "tag": "direct"}
+{"id": "ret-12", "question": "Do your running sneakers fit small?", "relevant_doc_ids": ["sizing_guide_v1"], "tag": "paraphrase"}
+{"id": "ret-13", "question": "Can I swap my shirt for a bigger one?", "relevant_doc_ids": ["sizing_guide_v1"], "tag": "paraphrase"}
+{"id": "ret-14", "question": "Do your clothes fit true to size?", "relevant_doc_ids": ["sizing_guide_v1"], "tag": "direct"}
+{"id": "ret-15", "question": "What is your phone number?", "relevant_doc_ids": ["support_contact_v1"], "tag": "direct"}
+{"id": "ret-16", "question": "Can I talk to someone on a Sunday?", "relevant_doc_ids": ["support_contact_v1"], "tag": "paraphrase"}
+{"id": "ret-17", "question": "How fast do you reply to emails?", "relevant_doc_ids": ["support_contact_v1"], "tag": "direct"}
+{"id": "ret-18", "question": "Where can I check where my package is right now?", "relevant_doc_ids": ["support_contact_v1"], "tag": "paraphrase"}
+{"id": "ret-19", "question": "My shoes don't fit. Can I exchange them, and how long will the new pair take to arrive?", "relevant_doc_ids": ["sizing_guide_v1", "policy_shipping_v1"], "tag": "multi_doc"}
+{"id": "ret-20", "question": "I want to return a $250 coat. Who do I contact, and what are your support hours?", "relevant_doc_ids": ["policy_returns_v1", "support_contact_v1"], "tag": "multi_doc"}
+{"id": "ret-21", "question": "What is the capital of France?", "relevant_doc_ids": [], "tag": "out_of_scope"}
+{"id": "ret-22", "question": "Do you sell gift cards?", "relevant_doc_ids": [], "tag": "out_of_scope"}
+{"id": "ret-23", "question": "Can you recommend a good laptop for programming?", "relevant_doc_ids": [], "tag": "out_of_scope"}
